@@ -6,8 +6,7 @@ from tmc_tools.constants import atomic_numbers, electronegativity, covalent_radi
 
 def racs_property_vector(graph, node):
     output = np.zeros(5)
-    symbol = graph.nodes[node]["symbol"]
-    Z = atomic_numbers[symbol]
+    Z = graph.nodes[node]["atomic_number"]
     # property (i): nuclear charge Z
     output[0] = Z
     # property (ii): Pauling electronegativity chi
@@ -187,6 +186,7 @@ def tetrahedral_racs(
 ):
     # For tetrahedrals there are 4 start/scope
     # combinations for product ACs and 2 for difference ACs.
+    print(graph.nodes.keys())
     n_props = len(property_fun(graph, list(graph.nodes.keys())[0]))
     output = np.zeros((4 + 2, depth + 1, n_props))
 

@@ -1,13 +1,13 @@
 import numpy as np
 import networkx as nx
-from tmc_tools.constants import covalent_radii
+from tmc_tools.constants import covalent_radii, atomic_numbers
 from tmc_tools.utils import deprecated
 
 
 def graph_from_ase_atoms(atoms, threshold=1.2):
     g = nx.Graph()
     for i, atom in enumerate(atoms):
-        g.add_node(i, symbol=atom.symbol)
+        g.add_node(i, atomic_number=int(atom.number))
 
     for i, ai in enumerate(atoms):
         for j, aj in enumerate(atoms[i + 1 :]):
@@ -43,7 +43,8 @@ def graph_from_mol_file(file):
     # Add atoms (offset of 4 for the header lines):
     for i, line in enumerate(lines[4 : 4 + n_atoms]):
         sp = line.split()
-        g.add_node(i, symbol=sp[3])
+        print(atomic_numbers[sp[3]])
+        g.add_node(i, atomic_number=atomic_numbers[sp[3]])
 
     # Add bonds:
     for line in lines[4 + n_atoms : 4 + n_atoms + n_bonds]:

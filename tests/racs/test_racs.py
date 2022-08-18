@@ -10,15 +10,15 @@ def furan_graph():
     g = nx.Graph()
     g.add_nodes_from(
         [
-            (0, {"symbol": "O"}),
-            (1, {"symbol": "C"}),
-            (2, {"symbol": "C"}),
-            (3, {"symbol": "C"}),
-            (4, {"symbol": "C"}),
-            (5, {"symbol": "H"}),
-            (6, {"symbol": "H"}),
-            (7, {"symbol": "H"}),
-            (8, {"symbol": "H"}),
+            (0, {"atomic_number": 8}),
+            (1, {"atomic_number": 6}),
+            (2, {"atomic_number": 6}),
+            (3, {"atomic_number": 6}),
+            (4, {"atomic_number": 6}),
+            (5, {"atomic_number": 1}),
+            (6, {"atomic_number": 1}),
+            (7, {"atomic_number": 1}),
+            (8, {"atomic_number": 1}),
         ]
     )
     g.add_edges_from(
@@ -30,11 +30,11 @@ def furan_graph():
 @pytest.fixture
 def fe_co_6():
     g = nx.Graph()
-    g.add_node(0, symbol="Fe")
+    g.add_node(0, atomic_number="Fe")
     for i in range(6):
-        g.add_node(1 + 2 * i, symbol="C")
+        g.add_node(1 + 2 * i, atomic_number="C")
         g.add_edge(0, 1 + 2 * i)
-        g.add_node(2 + 2 * i, symbol="O")
+        g.add_node(2 + 2 * i, atomic_number="O")
         g.add_edge(1 + 2 * i, 2 + 2 * i)
     return g
 
