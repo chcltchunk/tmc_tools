@@ -2,6 +2,7 @@ import numpy as np
 import networkx as nx
 import operator
 from tmc_tools.constants import atomic_numbers, electronegativity, covalent_radii
+from tmc_tools.graphs.mol_graph_tools import get_metal_id, compute_graph_determinant
 
 def racs_property_vector(graph, node):
     output = np.zeros(5)
@@ -289,7 +290,8 @@ def tetrahedral_racs(
 
 def get_set_of_lig_scaled_RACs(
     rac_set,
-    lig_tracker_set
+    lig_tracker_set,
+    feature_preserved=False,
 ):
     rac_set = np.array(rac_set)
     lig_tracker_set = np.array(lig_tracker_set)
@@ -297,8 +299,12 @@ def get_set_of_lig_scaled_RACs(
         curr_subset = rac_set[lig_tracker_set == atom_num]
         curr_mean = np.mean(curr_subset, axis=0)
         curr_std = np.std(curr_subset, axis=0)
-        rac_set[lig_tracker_set == atom_num] -= curr_mean
-        rac_set[lig_tracker_set == atom_num] /= curr_std
+        if feature_preserved:
+            rac_set[lig_tracker_set == atom_num] -= np.where(curr_std > 1e-6, curr_mean, 0)
+            rac_set[lig_tracker_set == atom_num] /= np.where(curr_std > 1e-6, curr_std, 1)
+        else:
+            rac_set[lig_tracker_set == atom_num] -= curr_mean
+            rac_set[lig_tracker_set == atom_num] /= curr_std
          
     # print(rac_set.shape)
     return rac_set.reshape(-1, rac_set.shape[1]*rac_set.shape[2])

@@ -33,3 +33,9 @@ def test_ligand_based_scaling_function(resource_path_root):
     dummy_lig = [[1,1,0], [0,2,2]]
     rac = get_set_of_lig_scaled_RACs(dummy, dummy_lig)
     np.testing.assert_allclose(rac, np.array([[[-1., -1., -1.], [ 1.,  1.,  1.], [-1., -1., -1.]], [[ 1.,  1.,  1.], [ 1.,  1., 1.], [-1., -1., -1.]]]).reshape(-1, 9))
+
+def test_ligand_based_feature_preserved_scaling(resource_path_root):
+    dummy = [[[0.5, 1.5, 0.5], [1.5, 1.5, 1.5], [0.5, 0.5, 0.5]], [[1.5,1.5,1.5], [1.5,1.5, 1.5], [0.5,0.5,0.5]]]
+    dummy_lig = [[1,1,0], [0,2,2]]
+    rac = get_set_of_lig_scaled_RACs(dummy, dummy_lig, feature_preserved=True)
+    np.testing.assert_allclose(rac, np.array([[[-1., 1.5, -1.], [ 1.,  1.5,  1.], [-1., -1., -1.]], [[ 1.,  1.,  1.], [ 1.,  1., 1.], [-1., -1., -1.]]]).reshape(-1, 9))
