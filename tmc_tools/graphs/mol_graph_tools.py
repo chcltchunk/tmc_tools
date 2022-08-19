@@ -1,6 +1,6 @@
 import networkx as nx
 import numpy as np
-from scipy.sparse import diag
+from scipy.sparse import diags
 from scipy.sparse.linalg import norm as spnorm
 from tmc_tools.constants import metal_list 
 
