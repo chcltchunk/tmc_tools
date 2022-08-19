@@ -3,7 +3,6 @@ import networkx as nx
 import operator
 from tmc_tools.constants import atomic_numbers, electronegativity, covalent_radii
 
-
 def racs_property_vector(graph, node):
     output = np.zeros(5)
     Z = graph.nodes[node]["atomic_number"]
@@ -183,12 +182,34 @@ def tetrahedral_racs(
     graph,
     depth: int = 3,
     property_fun=racs_property_vector,
+    scaler='none'
 ):
+    """
+    compute RACs for tetrahedral TMCs
+    
+    Parameters
+    ----------
+    graph : networkX.graph
+        TMC graph of molecule we want to generate RAC for
+    depth (int):
+        maximum depth of RAC (default: 3, default for oct: 4)
+    property_fun : array like, optional
+        properties to compute RACs for (default: racs_property_vector)
+    scaler : {'none', 'ligand_based'}, optional
+        'none' returns RAC only.
+        'ligand_based' returns RACs and a list of connecting atoms
+        per ligand. 0 is for the ful the ligand independent racs.
+     
+        
+
+    """
+
     # For tetrahedrals there are 4 start/scope
     # combinations for product ACs and 2 for difference ACs.
-    print(graph.nodes.keys())
     n_props = len(property_fun(graph, list(graph.nodes.keys())[0]))
-    output = np.zeros((4 + 2, depth + 1, n_props))
+    output = np.zeros((3 + 3 * 4, depth + 1, n_props))
+    # stores connecting atom numbers if normalizer = 'ligand_based'
+    ligand_tracker = np.zeros((3 + 3 * 4, ), dtype=int)
 
     # start = f, scope = all, product
     output[0] = multi_centered_AC(graph, depth=depth, property_fun=property_fun)
@@ -199,11 +220,14 @@ def tetrahedral_racs(
     # ligand graphs. Make these changes on a copy of the graph:
     subgraphs = graph.copy()
     # First find all connecting atoms (assumes the center is node 0):
-    connecting_atoms = list(subgraphs.neighbors(0))
+    metal_id = get_metal_id(graph)
+    if metal_id == None:
+        raise Exception("Could not find metal in complex.")
+    connecting_atoms = list(subgraphs.neighbors(metal_id))
     # Assert that we are removing 4 edges
     if len(connecting_atoms) != 4:
         raise ValueError(
-            "First entry in the graph does not have 6 neighbors "
+            "First entry in the graph does not have 4 neighbors "
             "as expected for an octahedral complex."
         )
     # Then cut the graph by removing all connections to the first atom
@@ -218,38 +242,63 @@ def tetrahedral_racs(
         for c in connecting_atoms
     ]
 
+    # assign consistent order by connecting atom's atomic number
+    ligand_graph_metrics = []
+    for ligand in ligands:
+        ligand_graph_metrics += [compute_graph_determinant(ligand[1])]
+    ligand_rac_order = np.argsort(ligand_graph_metrics)   
+        
     # Note that the ligand centered RACs are averaged over the involved
     # ligands.
     # start = lc, scope = lig, product
-    output[2] = np.mean(
-        [
+    output[3:3+4] = [
             atom_centered_AC(g, c, depth=depth, property_fun=property_fun)
             for (c, g) in ligands
-        ],
-        axis=0,
-    )
+        ]
     # start = lig, scope = lig, product
-    output[3] = np.mean(
-        [
+    output[7:7+4] = [
             multi_centered_AC(g, depth=depth, property_fun=property_fun)
             for (_, g) in ligands
-        ],
-        axis=0,
-    )
+        ]
 
     # Finally calculate the difference ACs the same way:
     # start = mc, scope = all, difference
-    output[4] = atom_centered_AC(
+    output[2] = atom_centered_AC(
         graph, 0, depth=depth, operation=operator.sub, property_fun=property_fun
     )
-    # start = lc, scope = ax, difference
-    output[5] = np.mean(
-        [
+    # start = lc, scope = lig, difference
+    output[11:11+4] = [
             atom_centered_AC(
                 g, c, depth=depth, operation=operator.sub, property_fun=property_fun
             )
             for (c, g) in ligands
-        ],
-        axis=0,
-    )
+        ]
+    ligand_tracker[3:] = list(np.array(list(nx.get_node_attributes(graph.subgraph(connecting_atoms),
+                                                                    "atomic_number").values()),
+                                dtype=int)[ligand_rac_order])*3
+    # print(ligand_tracker)
+    for i in range(2, 14, 4):
+        # deprecated: 
+        # output[i:i+4] = output[i:i+4][np.argsort(np.sum(output[i:i+4], axis=(1,2)))]
+        output[i:i+4] = output[i:i+4][ligand_rac_order]
+    
+    if scaler == 'ligand_based':
+        return output, ligand_tracker
     return output
+
+
+def get_set_of_lig_scaled_RACs(
+    rac_set,
+    lig_tracker_set
+):
+    rac_set = np.array(rac_set)
+    lig_tracker_set = np.array(lig_tracker_set)
+    for atom_num in sorted(set(lig_tracker_set.flatten())):
+        curr_subset = rac_set[lig_tracker_set == atom_num]
+        curr_mean = np.mean(curr_subset, axis=0)
+        curr_std = np.std(curr_subset, axis=0)
+        rac_set[lig_tracker_set == atom_num] -= curr_mean
+        rac_set[lig_tracker_set == atom_num] /= curr_std
+         
+    # print(rac_set.shape)
+    return rac_set.reshape(-1, rac_set.shape[1]*rac_set.shape[2])
